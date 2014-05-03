@@ -95,7 +95,7 @@ function _autofetch_fetch() {
   if (empty($l10n)) {
     CRM_Core_Session::setStatus(
       ts('Your localization directory is not configured.', array('domain' => L10N_AUTOFETCH)),
-      ts('l10n autofetch extension', array('domain' => L10N_AUTOFETCH)),
+      ts('Localization update', array('domain' => L10N_AUTOFETCH)),
       'error'
     );
     return;
@@ -103,7 +103,7 @@ function _autofetch_fetch() {
   if (!is_dir($l10n) || !is_writable($l10n)) {
     CRM_Core_Session::setStatus(
       ts('Your localization directory, %1, is not writable.', array(1 => $l10n, 'domain' => L10N_AUTOFETCH)),
-      ts('l10n autofetch extension', array('domain' => L10N_AUTOFETCH)),
+      ts('Localization update', array('domain' => L10N_AUTOFETCH)),
       'error'
     );
     return;
@@ -167,7 +167,7 @@ function _autofetch_fetch() {
       }
       CRM_Core_Session::setStatus(
         ts('Your localization files for %1 have been updated.', array(1 => $list, 'domain' => L10N_AUTOFETCH)),
-        ts('l10n autofetch extension', array('domain' => L10N_AUTOFETCH)),
+        ts('Localization update', array('domain' => L10N_AUTOFETCH)),
         'success'
       );
     }
