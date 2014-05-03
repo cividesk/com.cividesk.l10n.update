@@ -110,14 +110,23 @@ function _autofetch_fetch() {
   }
 
   // Get the list of locales we need to download
-  $domain = new CRM_Core_DAO_Domain;
-  $domain->find(TRUE);
-  if ($domain->locales) {
+  $domain = civicrm_api('Domain', 'get', array(
+    'current_domain' => 1,
+  ));
+
+  if ($domain['is_error']) {
+    CRM_Core_Error::fatal(ts('Could not find the domain information using the API.', array('domain' => L10N_AUTOFETCH)));
+  }
+
+  $domain_id = $domain['id'];
+
+  if (! empty($domain['values'][$domain]['locales'])) {
     // We are in multilingual mode, use list of enabled locale
-    $locales = explode(CRM_Core_DAO::VALUE_SEPARATOR, $domain->locales);
-  } else {
+    $locales = $domain['values'][$domain]['locales'];
+  }
+  else {
     // We are in singlelingual mode, use form-submitted locale or existing locale
-    $locales = array($_REQUEST['lcMessage'] ? $_REQUEST['lcMessage'] : $config->lcMessages);
+    $locales = array(CRM_Utils_System::getUFLocale());
   }
 
   // Now download the l10n files from civicrm.org
