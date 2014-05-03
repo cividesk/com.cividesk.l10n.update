@@ -95,7 +95,7 @@ function _autofetch_fetch() {
   if (empty($l10n)) {
     CRM_Core_Session::setStatus(
       ts('Your localization directory is not configured.', array('domain' => L10N_AUTOFETCH)),
-      ts('l10n autofetch extension', array('domain' => L10N_AUTOFETCH)),
+      ts('Localization update', array('domain' => L10N_AUTOFETCH)),
       'error'
     );
     return;
@@ -103,21 +103,30 @@ function _autofetch_fetch() {
   if (!is_dir($l10n) || !is_writable($l10n)) {
     CRM_Core_Session::setStatus(
       ts('Your localization directory, %1, is not writable.', array(1 => $l10n, 'domain' => L10N_AUTOFETCH)),
-      ts('l10n autofetch extension', array('domain' => L10N_AUTOFETCH)),
+      ts('Localization update', array('domain' => L10N_AUTOFETCH)),
       'error'
     );
     return;
   }
 
   // Get the list of locales we need to download
-  $domain = new CRM_Core_DAO_Domain;
-  $domain->find(TRUE);
-  if ($domain->locales) {
+  $domain = civicrm_api('Domain', 'get', array(
+    'current_domain' => 1,
+  ));
+
+  if ($domain['is_error']) {
+    CRM_Core_Error::fatal(ts('Could not find the domain information using the API.', array('domain' => L10N_AUTOFETCH)));
+  }
+
+  $domain_id = $domain['id'];
+
+  if (! empty($domain['values'][$domain]['locales'])) {
     // We are in multilingual mode, use list of enabled locale
-    $locales = explode(CRM_Core_DAO::VALUE_SEPARATOR, $domain->locales);
-  } else {
+    $locales = $domain['values'][$domain]['locales'];
+  }
+  else {
     // We are in singlelingual mode, use form-submitted locale or existing locale
-    $locales = array($_REQUEST['lcMessage'] ? $_REQUEST['lcMessage'] : $config->lcMessages);
+    $locales = array(CRM_Utils_System::getUFLocale());
   }
 
   // Now download the l10n files from civicrm.org
@@ -130,7 +139,7 @@ function _autofetch_fetch() {
     if (!is_dir($l10n . $locale . $subdir)) {
       $subdir = '';
     }
-    $remoteURL = "http://download.civicrm.org/civicrm-l10n-core/mo/$locale/civicrm.mo";
+    $remoteURL = "https://download.civicrm.org/civicrm-l10n-core/mo/$locale/civicrm.mo";
     $localFile = $l10n . $locale . $subdir . '/civicrm.mo';
     if (_autofetch_download($remoteURL, $localFile)) {
       $downloaded['core'] = 1;
@@ -140,7 +149,7 @@ function _autofetch_fetch() {
     foreach (CRM_Core_PseudoConstant::getModuleExtensions() as $module) {
       $extname = $module['prefix'];
       $extroot = dirname($module['filePath']);
-      $remoteURL = "http://download.civicrm.org/civicrm-l10n-extensions/mo/$extname/$locale/$extname.mo";
+      $remoteURL = "https://download.civicrm.org/civicrm-l10n-extensions/mo/$extname/$locale/$extname.mo";
       $localFile = "$extroot/l10n/$locale/LC_MESSAGES/$extname.mo";
       if (_autofetch_download($remoteURL, $localFile)) {
         $downloaded[$extname] = 1;
@@ -158,7 +167,7 @@ function _autofetch_fetch() {
       }
       CRM_Core_Session::setStatus(
         ts('Your localization files for %1 have been updated.', array(1 => $list, 'domain' => L10N_AUTOFETCH)),
-        ts('l10n autofetch extension', array('domain' => L10N_AUTOFETCH)),
+        ts('Localization update', array('domain' => L10N_AUTOFETCH)),
         'success'
       );
     }
@@ -175,7 +184,15 @@ function _autofetch_fetch() {
 function _autofetch_download($remoteURL, $localFile) {
   $delay = strtotime("1 day");
   if ((!file_exists($localFile)) || ((time() - filemtime($localFile)) > $delay)) {
-    mkdir(dirname($localFile), 0700, true);
+    if (! @mkdir(dirname($localFile), 0775, true)) {
+      CRM_Core_Session::setStatus(
+        ts('Could not create the directory for localization files (%1). Please create it manually and allow the web server to write to it.', array(1 => $localFile, 'domain' => L10N_AUTOFETCH)),
+        ts('Localization update', array('domain' => L10N_AUTOFETCH)),
+        'error'
+      );
+      return false;
+    }
+
     $result = CRM_Utils_HttpClient::singleton()->fetch($remoteURL, $localFile);
     if (($result == CRM_Utils_HttpClient::STATUS_OK) && file_exists($localFile)) {
       return (filesize($localFile) > 0);
