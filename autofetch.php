@@ -175,7 +175,15 @@ function _autofetch_fetch() {
 function _autofetch_download($remoteURL, $localFile) {
   $delay = strtotime("1 day");
   if ((!file_exists($localFile)) || ((time() - filemtime($localFile)) > $delay)) {
-    mkdir(dirname($localFile), 0700, true);
+    if (! @mkdir(dirname($localFile), 0775, true)) {
+      CRM_Core_Session::setStatus(
+        ts('Could not create the directory for localization files (%1). Please create it manually and allow the web server to write to it.', array(1 => $localFile, 'domain' => L10N_AUTOFETCH)),
+        ts('Localization update', array('domain' => L10N_AUTOFETCH)),
+        'error'
+      );
+      return false;
+    }
+
     $result = CRM_Utils_HttpClient::singleton()->fetch($remoteURL, $localFile);
     if (($result == CRM_Utils_HttpClient::STATUS_OK) && file_exists($localFile)) {
       return (filesize($localFile) > 0);
