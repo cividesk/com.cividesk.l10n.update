@@ -130,7 +130,7 @@ function _autofetch_fetch() {
     if (!is_dir($l10n . $locale . $subdir)) {
       $subdir = '';
     }
-    $remoteURL = "http://download.civicrm.org/civicrm-l10n-core/mo/$locale/civicrm.mo";
+    $remoteURL = "https://download.civicrm.org/civicrm-l10n-core/mo/$locale/civicrm.mo";
     $localFile = $l10n . $locale . $subdir . '/civicrm.mo';
     if (_autofetch_download($remoteURL, $localFile)) {
       $downloaded['core'] = 1;
@@ -140,7 +140,7 @@ function _autofetch_fetch() {
     foreach (CRM_Core_PseudoConstant::getModuleExtensions() as $module) {
       $extname = $module['prefix'];
       $extroot = dirname($module['filePath']);
-      $remoteURL = "http://download.civicrm.org/civicrm-l10n-extensions/mo/$extname/$locale/$extname.mo";
+      $remoteURL = "https://download.civicrm.org/civicrm-l10n-extensions/mo/$extname/$locale/$extname.mo";
       $localFile = "$extroot/l10n/$locale/LC_MESSAGES/$extname.mo";
       if (_autofetch_download($remoteURL, $localFile)) {
         $downloaded[$extname] = 1;
