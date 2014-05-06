@@ -18,16 +18,15 @@
  +--------------------------------------------------------------------------+
 */
 
-define('L10N_AUTOFETCH', 'com.cividesk.l10n.autofetch');
+define('L10N_UPDATE_DOMAIN', 'com.cividesk.l10n.update');
+define('L10N_UPDATE_TSNAME', ts('Localization Update extension', array('domain' => L10N_UPDATE_DOMAIN)));
 
 /**
  * Implementation of hook_civicrm_buildForm
  */
-function autofetch_civicrm_buildForm($formName, &$form) {
+function l10nupdate_civicrm_buildForm($formName, &$form) {
   // Administer / Localization / Languages, Currency, Locations
   if ($formName == 'CRM_Admin_Form_Setting_Localization') {
-    // Refresh localization files for core
-    _autofetch_fetch();
     // Replace the drop-down list of locales with all possible locales
     if ($element = $form->getElement('lcMessages')) {
       // Mostly copied from CRM_Admin_Form_Setting_Localization::buildQuickForm()
@@ -49,28 +48,21 @@ function autofetch_civicrm_buildForm($formName, &$form) {
         $form->addElement('select', 'lcMessages', ts('Default Language'), $locales);
       }
     }
-  }
-}
-
-/**
- * Implementation of hook_civicrm_postProcess
- */
-function autofetch_civicrm_postProcess( $formName, &$form ) {
-  // Administer / Localization / Languages, Currency, Locations
-  if ($formName == 'CRM_Admin_Form_Setting_Localization') {
-    // Refresh localization files for core
-    _autofetch_fetch();
+    // Refresh localization files, but if the form has been submitted by the user
+    // then add the new language requested to the list of locales to be refreshed
+    $locale = ($_REQUEST['addLanguage'] ? $_REQUEST['addLanguage'] : ($_REQUEST['lcMessages'] ? $_REQUEST['lcMessages'] : ''));
+    _l10nupdate_fetch($locale);
   }
 }
 
 /**
  * Implementation of hook_civicrm_pageRun
  */
-function autofetch_civicrm_pageRun( &$page ) {
+function l10nupdate_civicrm_pageRun( &$page ) {
   // Administer / System Settings / Manage Extensions
   if (is_a($page, 'CRM_Admin_Page_Extensions')) {
-    // Refresh localization files for extensions
-    _autofetch_fetch();
+    // Refresh localization files
+    _l10nupdate_fetch();
   }
 }
 
@@ -78,61 +70,56 @@ function autofetch_civicrm_pageRun( &$page ) {
  * Fetches updated localization files from civicrm.org
  * it refreshes core and all extension localization files
  * for all needed languages (ie. default language in singlelingual or all enabled in multilingual)
+ * @input string Comma-delimited list of additional languages that need to be fetched
  */
-function _autofetch_fetch() {
-  global $_autofetch_done;
-
-  // Have we been already called by another hook?
-  if ($_autofetch_done) {
-    return;
-  }
-  $_autofetch_done = true;
-
+function _l10nupdate_fetch($locales = '') {
   $config = CRM_Core_Config::singleton();
 
   // Check that the l10n directory is configured, exists, and is writable
   $l10n = $config->gettextResourceDir;
   if (empty($l10n)) {
     CRM_Core_Session::setStatus(
-      ts('Your localization directory is not configured.', array('domain' => L10N_AUTOFETCH)),
-      ts('l10n autofetch extension', array('domain' => L10N_AUTOFETCH)),
-      'error'
+      ts('Your localization directory is not configured.', array('domain' => L10N_UPDATE_DOMAIN)),
+      L10N_UPDATE_TSNAME, 'error'
     );
     return;
   }
   if (!is_dir($l10n) || !is_writable($l10n)) {
     CRM_Core_Session::setStatus(
-      ts('Your localization directory, %1, is not writable.', array(1 => $l10n, 'domain' => L10N_AUTOFETCH)),
-      ts('l10n autofetch extension', array('domain' => L10N_AUTOFETCH)),
-      'error'
+      ts('Your localization directory, %1, is not writable.', array(1 => $l10n, 'domain' => L10N_UPDATE_DOMAIN)),
+      L10N_UPDATE_TSNAME, 'error'
     );
     return;
   }
 
   // Get the list of locales we need to download
+  // start from the input parameter
+  $locales = ($locales ? explode(',', $locales) : array());
   $domain = new CRM_Core_DAO_Domain;
   $domain->find(TRUE);
   if ($domain->locales) {
-    // We are in multilingual mode, use list of enabled locale
-    $locales = explode(CRM_Core_DAO::VALUE_SEPARATOR, $domain->locales);
+    // in multilingual mode, add list of enabled locales
+    $locales = array_merge($locales, explode(CRM_Core_DAO::VALUE_SEPARATOR, $domain->locales));
   } else {
-    // We are in singlelingual mode, use form-submitted locale or existing locale
-    $locales = array($_REQUEST['lcMessage'] ? $_REQUEST['lcMessage'] : $config->lcMessages);
+    // in singlelingual mode, add default locale
+    $locales = array_merge($locales, array($config->lcMessages));
   }
 
   // Now download the l10n files from civicrm.org
   $downloaded = array();
   foreach ($locales as $locale) {
     if ($locale == 'en_US') continue;
+    // sanity tests - does the locale look legit?
+    if ((strlen($locale) != 5) || (substr($locale, 2,1) != '_')) continue;
 
     // Download core translation files
     $subdir = '/LC_MESSAGES';
     if (!is_dir($l10n . $locale . $subdir)) {
       $subdir = '';
     }
-    $remoteURL = "http://download.civicrm.org/civicrm-l10n-core/mo/$locale/civicrm.mo";
+    $remoteURL = "https://download.civicrm.org/civicrm-l10n-core/mo/$locale/civicrm.mo";
     $localFile = $l10n . $locale . $subdir . '/civicrm.mo';
-    if (_autofetch_download($remoteURL, $localFile)) {
+    if (_l10nupdate_download($remoteURL, $localFile)) {
       $downloaded['core'] = 1;
     }
 
@@ -140,9 +127,9 @@ function _autofetch_fetch() {
     foreach (CRM_Core_PseudoConstant::getModuleExtensions() as $module) {
       $extname = $module['prefix'];
       $extroot = dirname($module['filePath']);
-      $remoteURL = "http://download.civicrm.org/civicrm-l10n-extensions/mo/$extname/$locale/$extname.mo";
+      $remoteURL = "https://download.civicrm.org/civicrm-l10n-extensions/mo/$extname/$locale/$extname.mo";
       $localFile = "$extroot/l10n/$locale/LC_MESSAGES/$extname.mo";
-      if (_autofetch_download($remoteURL, $localFile)) {
+      if (_l10nupdate_download($remoteURL, $localFile)) {
         $downloaded[$extname] = 1;
       }
     }
@@ -152,14 +139,13 @@ function _autofetch_fetch() {
       $modules = array_keys($downloaded);
       if (sizeof($modules) > 1) {
         $last = array_shift($modules);
-        $list = explode(', ', $modules).' '.ts('and', array('domain' => L10N_AUTOFETCH)).' '.$last;
+        $list = implode(', ', $modules).' '.ts('and', array('domain' => L10N_UPDATE_DOMAIN)).' '.$last;
       } else {
         $list = reset($modules);
       }
       CRM_Core_Session::setStatus(
-        ts('Your localization files for %1 have been updated.', array(1 => $list, 'domain' => L10N_AUTOFETCH)),
-        ts('l10n autofetch extension', array('domain' => L10N_AUTOFETCH)),
-        'success'
+        ts('Your localization files for %1 have been updated.', array(1 => $list, 'domain' => L10N_UPDATE_DOMAIN)),
+        L10N_UPDATE_TSNAME, 'success'
       );
     }
   }
@@ -172,13 +158,21 @@ function _autofetch_fetch() {
  * @param string $localFile where to store this file locally
  * @return boolean true if the file was refreshed and is not empty
  */
-function _autofetch_download($remoteURL, $localFile) {
+function _l10nupdate_download($remoteURL, $localFile) {
   $delay = strtotime("1 day");
   if ((!file_exists($localFile)) || ((time() - filemtime($localFile)) > $delay)) {
-    mkdir(dirname($localFile), 0700, true);
+    if (!@mkdir(dirname($localFile), 0775, true)) {
+      return false;
+    }
     $result = CRM_Utils_HttpClient::singleton()->fetch($remoteURL, $localFile);
     if (($result == CRM_Utils_HttpClient::STATUS_OK) && file_exists($localFile)) {
-      return (filesize($localFile) > 0);
+      // Check if CRM_Utils_HttpClient encountered a HTTP error 404 (cf. CRM-14649)
+      if (strpos(file_get_contents($localFile), '404 Not Found')) {
+        // reset the file to empty (then will not try to reload until delay is passed)
+        fclose(fopen($localFile, 'w'));
+        return false;
+      }
+      return true;
     }
   }
   return false;

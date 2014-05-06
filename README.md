@@ -1,5 +1,5 @@
-l10n autofetch extension
-========================
+Localization Update
+===================
 
 Automated download of translations files for CiviCRM core and extensions.
 
@@ -21,25 +21,24 @@ Requirements
 * The hosting server must have php5-curl installed.
 * The civicrm/l10n directory must be writable by the web server,
   as well as the l10n directory of each extension installed.
+These requirements are normally fulfilled in a standard CiviCRM installation.
 
 Support
 =======
 
-Please post support and feature requests for this extension to the
-"internationalization and localization" forum:
+Please post support and feature requests for this extension to the "internationalization and localization" forum:
 http://forum.civicrm.org/index.php/board,10.0.html
 
 The latest version of this extension can be found at:
-https://github.com/cividesk/com.cividesk.l10n.autofetch
+https://github.com/cividesk/com.cividesk.l10n.update
 
 The bug tracker is located at:
-https://github.com/cividesk/com.cividesk.l10n.autofetch/issues
+https://github.com/cividesk/com.cividesk.l10n.update/issues
 
 Copyright
 =========
 
-Copyright (C) 2014 IT Bliss LLC
-http://cividesk.com/
+Copyright (C) 2014 IT Bliss LLC, http://cividesk.com/
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published

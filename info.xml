@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<extension key="com.cividesk.l10n.autofetch" type="module">
-    <file>autofetch</file>
-    <name>l10n autofetch</name>
+<extension key="com.cividesk.l10n.update" type="module">
+    <file>l10nupdate</file>
+    <name>Localization Update</name>
     <description>Automated download of translations files for CiviCRM core and extensions.</description>
     <urls>
         <url desc="Main Extension Page">https://github.com/cividesk/com.cividesk.l10n.autofetch</url>
