@@ -76,7 +76,7 @@ function _l10nupdate_fetch($locales = '') {
   $config = CRM_Core_Config::singleton();
 
   // Check that the l10n directory is configured, exists, and is writable
-  $l10n = $config->gettextResourceDir;
+  $l10n = CRM_Core_I18n::getResourceDir();
   if (empty($l10n)) {
     CRM_Core_Session::setStatus(
       ts('Your localization directory is not configured.', array('domain' => L10N_UPDATE_DOMAIN)),
