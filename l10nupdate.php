@@ -50,7 +50,7 @@ function l10nupdate_civicrm_buildForm($formName, &$form) {
     }
     // Refresh localization files, but if the form has been submitted by the user
     // then add the new language requested to the list of locales to be refreshed
-    $locale = ($_REQUEST['addLanguage'] ? $_REQUEST['addLanguage'] : ($_REQUEST['lcMessages'] ? $_REQUEST['lcMessages'] : ''));
+    $locale = (!empty($_REQUEST['addLanguage']) ? $_REQUEST['addLanguage'] : (!empty($_REQUEST['lcMessages']) ? $_REQUEST['lcMessages'] : ''));
     _l10nupdate_fetch($locale);
   }
 }
