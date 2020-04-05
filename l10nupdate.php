@@ -18,11 +18,25 @@
  +--------------------------------------------------------------------------+
 */
 
+require_once 'l10nupdate.civix.php';
+use CRM_L10nupdate_ExtensionUtil as E;
+
 define('L10N_UPDATE_DOMAIN', 'com.cividesk.l10n.update');
 define('L10N_UPDATE_TSNAME', ts('Localization Update extension', array('domain' => L10N_UPDATE_DOMAIN)));
 
 /**
+ * Implements hook_civicrm_config().
+ */
+function l10nupdate_civicrm_config(&$config) {
+  _l10nupdate_civix_civicrm_config($config);
+}
+
+/**
  * Implementation of hook_civicrm_buildForm
+ * @param string $formName
+ * @param \CRM_Core_Form $form
+ *
+ * @throws \CRM_Core_Exception
  */
 function l10nupdate_civicrm_buildForm($formName, &$form) {
   // Administer / Localization / Languages, Currency, Locations
@@ -33,36 +47,41 @@ function l10nupdate_civicrm_buildForm($formName, &$form) {
       $locales = CRM_Contact_BAO_Contact::buildOptions('preferred_language');
       $domain = new CRM_Core_DAO_Domain();
       $domain->find(TRUE);
-      if ($domain->locales) {
-        // for multi-lingual sites, populate default language drop-down with available languages
-        $lcMessages = array();
-        foreach ($locales as $loc => $lang) {
-          if (substr_count($domain->locales, $loc)) {
-            $lcMessages[$loc] = $lang;
-          }
+      // Populate default language drop-down with available languages
+      $lcMessages = array();
+      foreach ($locales as $loc => $lang) {
+        if (substr_count($domain->locales, $loc)) {
+          $lcMessages[$loc] = $lang;
         }
-        $form->addElement('select', 'lcMessages', ts('Default Language'), $lcMessages);
-        $form->addElement('select', 'addLanguage', ts('Add Language'), array_merge(array('' => ts('- select -')), array_diff($locales, $lcMessages)));
-      } else {
-        // for single-lingual sites, populate default language drop-down with all languages
-        $form->addElement('select', 'lcMessages', ts('Default Language'), $locales);
       }
+      $form->addElement('select', 'lcMessages', ts('Default Language'), $locales);
+      $form->addElement('select', 'addLanguage', ts('Add Language'), array_merge(array('' => ts('- select -')), array_diff($locales, $lcMessages)));
+      // This replaces the uiLanguages select element with one which has all available languages even if they are not already downloaded.
+      // If you enable a language this extension will download it.
+      $uiLanguagesSetting = \Civi\Core\SettingsMetadata::getMetadata(['name' => ['uiLanguages']], NULL, TRUE)['uiLanguages'];
+      $uiLanguagesSetting['options'] = $locales;
+      $uiLanguagesSetting['html_attributes']['class'] = $uiLanguagesSetting['html_attributes']['class'] . ' big';
+      $form->add($uiLanguagesSetting['html_type'], $uiLanguagesSetting['name'], $uiLanguagesSetting['title'], $uiLanguagesSetting['options'], $uiLanguagesSetting['is_required'] ?? FALSE, $uiLanguagesSetting['html_attributes']);
     }
     // Refresh localization files, but if the form has been submitted by the user
     // then add the new language requested to the list of locales to be refreshed
-    $locale = (!empty($_REQUEST['addLanguage']) ? $_REQUEST['addLanguage'] : (!empty($_REQUEST['lcMessages']) ? $_REQUEST['lcMessages'] : ''));
-    _l10nupdate_fetch($locale);
+    $locale = $_REQUEST['addLanguage'] ?? $_REQUEST['lcMessages'] ?? '';
+    l10nupdate_fetch($locale);
   }
 }
 
 /**
  * Implementation of hook_civicrm_pageRun
+ *
+ * @param \CRM_Core_Page $page
+ *
+ * @throws \CRM_Core_Exception
  */
 function l10nupdate_civicrm_pageRun( &$page ) {
   // Administer / System Settings / Manage Extensions
   if (is_a($page, 'CRM_Admin_Page_Extensions')) {
     // Refresh localization files
-    _l10nupdate_fetch();
+    l10nupdate_fetch();
   }
 }
 
@@ -70,9 +89,12 @@ function l10nupdate_civicrm_pageRun( &$page ) {
  * Fetches updated localization files from civicrm.org
  * it refreshes core and all extension localization files
  * for all needed languages (ie. default language in singlelingual or all enabled in multilingual)
- * @input string Comma-delimited list of additional languages that need to be fetched
+ *
+ * @param string $locales Comma-delimited list of additional languages that need to be fetched
+ *
+ * @throws \CRM_Core_Exception
  */
-function _l10nupdate_fetch($locales = '') {
+function l10nupdate_fetch($locales = '') {
   $config = CRM_Core_Config::singleton();
 
   // Check that the l10n directory is configured, exists, and is writable
@@ -101,8 +123,8 @@ function _l10nupdate_fetch($locales = '') {
     // in multilingual mode, add list of enabled locales
     $locales = array_merge($locales, explode(CRM_Core_DAO::VALUE_SEPARATOR, $domain->locales));
   } else {
-    // in singlelingual mode, add default locale
-    $locales = array_merge($locales, array($config->lcMessages));
+    // in singlelingual mode, add enabled locales
+    $locales = array_merge(CRM_Core_I18n::uiLanguages(TRUE), array($config->lcMessages));
   }
 
   // Now download the l10n files from civicrm.org
@@ -156,7 +178,9 @@ function _l10nupdate_fetch($locales = '') {
  * will check that we have not already downloaded it recently
  * @param string $remoteURL URL for this particular file
  * @param string $localFile where to store this file locally
+ *
  * @return boolean true if the file was refreshed and is not empty
+ * @throws \CRM_Core_Exception
  */
 function _l10nupdate_download($remoteURL, $localFile) {
   $delay = strtotime("1 day");
