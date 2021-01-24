@@ -91,10 +91,12 @@ function l10nupdate_civicrm_pageRun( &$page ) {
  * for all needed languages (ie. default language in singlelingual or all enabled in multilingual)
  *
  * @param string $locales Comma-delimited list of additional languages that need to be fetched
+ * @param bool $forceDownload If true, re-download even if we already downloaded within the last day
  *
+ * @return array|void
  * @throws \CRM_Core_Exception
  */
-function l10nupdate_fetch($locales = '') {
+function l10nupdate_fetch($locales = '', $forceDownload = FALSE) {
   $config = CRM_Core_Config::singleton();
 
   // Check that the l10n directory is configured, exists, and is writable
@@ -141,8 +143,8 @@ function l10nupdate_fetch($locales = '') {
     }
     $remoteURL = "https://download.civicrm.org/civicrm-l10n-core/mo/$locale/civicrm.mo";
     $localFile = $l10n . $locale . $subdir . '/civicrm.mo';
-    if (_l10nupdate_download($remoteURL, $localFile)) {
-      $downloaded['core'] = 1;
+    if (_l10nupdate_download($remoteURL, $localFile, $forceDownload)) {
+      $downloaded['core']++;
     }
 
     // Download extensions translation files
@@ -151,8 +153,8 @@ function l10nupdate_fetch($locales = '') {
       $extroot = dirname($module['filePath']);
       $remoteURL = "https://download.civicrm.org/civicrm-l10n-extensions/mo/$extname/$locale/$extname.mo";
       $localFile = "$extroot/l10n/$locale/LC_MESSAGES/$extname.mo";
-      if (_l10nupdate_download($remoteURL, $localFile)) {
-        $downloaded[$extname] = 1;
+      if (_l10nupdate_download($remoteURL, $localFile, $forceDownload)) {
+        $downloaded[$extname]++;
       }
     }
 
@@ -171,6 +173,7 @@ function l10nupdate_fetch($locales = '') {
       );
     }
   }
+  return $downloaded;
 }
 
 /**
@@ -178,14 +181,18 @@ function l10nupdate_fetch($locales = '') {
  * will check that we have not already downloaded it recently
  * @param string $remoteURL URL for this particular file
  * @param string $localFile where to store this file locally
+ * @param bool $forceDownload If TRUE, force re-download
  *
  * @return boolean true if the file was refreshed and is not empty
  * @throws \CRM_Core_Exception
  */
-function _l10nupdate_download($remoteURL, $localFile) {
+function _l10nupdate_download($remoteURL, $localFile, $forceDownload = FALSE) {
   $delay = strtotime("1 day");
-  if ((!file_exists($localFile)) || ((time() - filemtime($localFile)) > $delay)) {
-    if (!@mkdir(dirname($localFile), 0775, true)) {
+  $l10nFileOutOfDate = ((time() - filemtime($localFile)) > $delay);
+
+  if ((!file_exists($localFile)) || $l10nFileOutOfDate || $forceDownload) {
+    $localeDir = dirname($localFile);
+    if (!is_dir($localeDir) && !mkdir($localeDir, 0775, true)) {
       return false;
     }
     $result = CRM_Utils_HttpClient::singleton()->fetch($remoteURL, $localFile);
