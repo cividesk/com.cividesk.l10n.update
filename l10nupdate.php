@@ -22,7 +22,7 @@ require_once 'l10nupdate.civix.php';
 use CRM_L10nupdate_ExtensionUtil as E;
 
 define('L10N_UPDATE_DOMAIN', 'com.cividesk.l10n.update');
-define('L10N_UPDATE_TSNAME', ts('Localization Update extension', array('domain' => L10N_UPDATE_DOMAIN)));
+define('L10N_UPDATE_TSNAME', E::ts('Localization Update extension'));
 
 /**
  * Implements hook_civicrm_config().
@@ -42,7 +42,7 @@ function l10nupdate_civicrm_buildForm($formName, &$form) {
   // Administer / Localization / Languages, Currency, Locations
   if ($formName == 'CRM_Admin_Form_Setting_Localization') {
     // Replace the drop-down list of locales with all possible locales
-    if ($element = $form->getElement('lcMessages')) {
+    if ($form->getElement('lcMessages')) {
       // Mostly copied from CRM_Admin_Form_Setting_Localization::buildQuickForm()
       $locales = CRM_Contact_BAO_Contact::buildOptions('preferred_language');
       $domain = new CRM_Core_DAO_Domain();
@@ -54,8 +54,8 @@ function l10nupdate_civicrm_buildForm($formName, &$form) {
           $lcMessages[$loc] = $lang;
         }
       }
-      $form->addElement('select', 'lcMessages', ts('Default Language'), $locales);
-      $form->addElement('select', 'addLanguage', ts('Add Language'), array_merge(array('' => ts('- select -')), array_diff($locales, $lcMessages)));
+      $form->addElement('select', 'lcMessages', E::ts('Default Language'), $locales);
+      $form->addElement('select', 'addLanguage', E::ts('Add Language'), array_merge(['' => E::ts('- select -')], array_diff($locales, $lcMessages)));
       // This replaces the uiLanguages select element with one which has all available languages even if they are not already downloaded.
       // If you enable a language this extension will download it.
       $uiLanguagesSetting = \Civi\Core\SettingsMetadata::getMetadata(['name' => ['uiLanguages']], NULL, TRUE)['uiLanguages'];
@@ -77,7 +77,7 @@ function l10nupdate_civicrm_buildForm($formName, &$form) {
  *
  * @throws \CRM_Core_Exception
  */
-function l10nupdate_civicrm_pageRun( &$page ) {
+function l10nupdate_civicrm_pageRun(&$page) {
   // Administer / System Settings / Manage Extensions
   if (is_a($page, 'CRM_Admin_Page_Extensions')) {
     // Refresh localization files
@@ -103,14 +103,14 @@ function l10nupdate_fetch($locales = '', $forceDownload = FALSE) {
   $l10n = CRM_Core_I18n::getResourceDir();
   if (empty($l10n)) {
     CRM_Core_Session::setStatus(
-      ts('Your localization directory is not configured.', array('domain' => L10N_UPDATE_DOMAIN)),
+      E::ts('Your localization directory is not configured.', ['domain' => L10N_UPDATE_DOMAIN]),
       L10N_UPDATE_TSNAME, 'error'
     );
     return;
   }
   if (!is_dir($l10n) || !is_writable($l10n)) {
     CRM_Core_Session::setStatus(
-      ts('Your localization directory, %1, is not writable.', array(1 => $l10n, 'domain' => L10N_UPDATE_DOMAIN)),
+      E::ts('Your localization directory, %1, is not writable.', [1 => $l10n]),
       L10N_UPDATE_TSNAME, 'error'
     );
     return;
@@ -163,12 +163,12 @@ function l10nupdate_fetch($locales = '', $forceDownload = FALSE) {
       $modules = array_keys($downloaded);
       if (sizeof($modules) > 1) {
         $last = array_shift($modules);
-        $list = implode(', ', $modules).' '.ts('and', array('domain' => L10N_UPDATE_DOMAIN)).' '.$last;
+        $list = implode(', ', $modules) . ' ' . E::ts('and') . ' ' . $last;
       } else {
         $list = reset($modules);
       }
       CRM_Core_Session::setStatus(
-        ts('Your localization files for %1 have been updated.', array(1 => $list, 'domain' => L10N_UPDATE_DOMAIN)),
+        E::ts('Your localization files for %1 have been updated.', [1 => $list]),
         L10N_UPDATE_TSNAME, 'success'
       );
     }
