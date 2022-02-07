@@ -141,21 +141,34 @@ function l10nupdate_fetch($locales = '', $forceDownload = FALSE) {
     if (!is_dir($l10n . $locale . $subdir)) {
       $subdir = '';
     }
-    $remoteURL = "https://download.civicrm.org/civicrm-l10n-core/mo/$locale/civicrm.mo";
-    $localFile = $l10n . $locale . $subdir . '/civicrm.mo';
-    if (_l10nupdate_download($remoteURL, $localFile, $forceDownload)) {
-      $downloaded['core']++;
-    }
 
-    // Download extensions translation files
-    foreach (CRM_Core_PseudoConstant::getModuleExtensions() as $module) {
-      $extname = $module['prefix'];
-      $extroot = dirname($module['filePath']);
-      $remoteURL = "https://download.civicrm.org/civicrm-l10n-extensions/mo/$extname/$locale/$extname.mo";
-      $localFile = "$extroot/l10n/$locale/LC_MESSAGES/$extname.mo";
+    try {
+      $remoteURL = "https://download.civicrm.org/civicrm-l10n-core/mo/$locale/civicrm.mo";
+      $localFile = $l10n . $locale . $subdir . '/civicrm.mo';
       if (_l10nupdate_download($remoteURL, $localFile, $forceDownload)) {
-        $downloaded[$extname]++;
+        $downloaded['core']++;
       }
+
+      // Download extensions translation files
+      foreach (CRM_Core_PseudoConstant::getModuleExtensions() as $module) {
+        $extname = $module['prefix'];
+        $extroot = dirname($module['filePath']);
+        $remoteURL = "https://download.civicrm.org/civicrm-l10n-extensions/mo/$extname/$locale/$extname.mo";
+        $localFile = "$extroot/l10n/$locale/LC_MESSAGES/$extname.mo";
+        if (_l10nupdate_download($remoteURL, $localFile, $forceDownload)) {
+          $downloaded[$extname]++;
+        }
+      }
+    }
+    catch (GuzzleHttp\Exception\ConnectException $e) {
+      \Civi::log('l10nupdate')->error("l10nupdate_download Aborting (ConnectException {$remoteURL}): " . $e->getMessage());
+      // Do not try to download any more locales. ConnectException is probably fatal.
+      break;
+    }
+    catch (Exception $e) {
+      \Civi::log('l10nupdate')->error("l10nupdate_download failed: " . $e->getMessage());
+      // Do not try to download any more locales.
+      break;
     }
 
     // Output a nicely formatted message if we have been successful
@@ -188,23 +201,25 @@ function l10nupdate_fetch($locales = '', $forceDownload = FALSE) {
  */
 function _l10nupdate_download($remoteURL, $localFile, $forceDownload = FALSE) {
   $delay = strtotime("1 day");
-  $l10nFileOutOfDate = ((time() - filemtime($localFile)) > $delay);
+  $l10nFileOutOfDate = ((time() - @filemtime($localFile)) > $delay);
 
   if ((!file_exists($localFile)) || $l10nFileOutOfDate || $forceDownload) {
     $localeDir = dirname($localFile);
-    if (!is_dir($localeDir) && !mkdir($localeDir, 0775, true)) {
-      return false;
+    if (!is_dir($localeDir) && !@mkdir($localeDir, 0775, TRUE)) {
+      return FALSE;
     }
-    $result = CRM_Utils_HttpClient::singleton()->fetch($remoteURL, $localFile);
-    if (($result == CRM_Utils_HttpClient::STATUS_OK) && file_exists($localFile)) {
-      // Check if CRM_Utils_HttpClient encountered a HTTP error 404 (cf. CRM-14649)
-      if (strpos(file_get_contents($localFile), '404 Not Found')) {
-        // reset the file to empty (then will not try to reload until delay is passed)
-        fclose(fopen($localFile, 'w'));
-        return false;
-      }
-      return true;
+    $client = new GuzzleHttp\Client();
+    $response = $client->request('GET', $remoteURL, ['sink' => $localFile, 'timeout' => 5, 'http_errors' => FALSE]);
+    if ($response->getStatusCode() !== 200) {
+      \Civi::log()->warning($response->getStatusCode() . ': ' . $response->getReasonPhrase() . ': ' . $remoteURL);
+      // reset the file to empty (then will not try to reload until delay is passed)
+      fclose(fopen($localFile, 'w'));
+      return FALSE;
+    }
+    if (($response->getStatusCode() === 200) && file_exists($localFile)) {
+      return TRUE;
     }
   }
-  return false;
+
+  return FALSE;
 }
