@@ -13,10 +13,10 @@
         <author>Nicolas Ganivet (cividesk)</author>
         <email>support@cividesk.com</email>
     </maintainer>
-    <releaseDate>2020-04-05</releaseDate>
-    <version>1.1</version>
+    <releaseDate>2022-07-08</releaseDate>
+    <version>1.2</version>
     <compatibility>
-        <ver>5.19</ver>
+        <ver>5.49</ver>
     </compatibility>
     <comments>
         Once installed, this extension will automatically download translation files for CiviCRM core and extensions when you
