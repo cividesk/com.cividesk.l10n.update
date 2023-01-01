@@ -20,6 +20,14 @@ Once selected the extension will automatically download them.
   as well as the l10n directory of each extension installed.
 These requirements are normally fulfilled in a standard CiviCRM installation.
 
+## Installation
+
+This extension cannot be installed using the CiviCRM extension manager. The instructions [here](https://docs.civicrm.org/sysadmin/en/latest/customize/extensions/#installing-a-new-extension) gives the general instructions, but since this repo has no released package, so you should
+
+- Download the complete repo as a zip
+- Unzip that into the extension directory (often `custom_ext` in the media directory or similar)
+- Re-load the Manage Extension page to see the package as an installable option
+
 ## Usage
 
 Once installed, this extension will automatically download translation files for CiviCRM core and extensions when you
