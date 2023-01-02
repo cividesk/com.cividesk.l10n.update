@@ -25,7 +25,7 @@ These requirements are normally fulfilled in a standard CiviCRM installation.
 This extension cannot be installed using the CiviCRM extension manager. The instructions [here](https://docs.civicrm.org/sysadmin/en/latest/customize/extensions/#installing-a-new-extension) gives the general instructions, but since this repo has no released package, so you should
 
 - Download the complete repo as a zip
-- Unzip that into the extension directory (often `custom_ext` in the media directory or similar)
+- Unzip that into the extension directory, by default called `ext` in the media directory or similar, but check Administer->System Settings->Directories
 - Re-load the Manage Extension page to see the package as an installable option
 
 ## Usage
