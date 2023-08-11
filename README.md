@@ -1,3 +1,8 @@
+# NOTE: Deprecated
+
+This CiviCRM extension has been superseeded by the [Uplang extension](https://lab.civicrm.org/extensions/uplang).
+
+
 # Localization Update
 
 Automated download of translations files for CiviCRM core and extensions.
