@@ -1,3 +1,8 @@
+# NOTE: Deprecated
+
+This CiviCRM extension has been superseeded by the [Uplang extension](https://lab.civicrm.org/extensions/uplang).
+
+
 # Localization Update
 
 Automated download of translations files for CiviCRM core and extensions.
@@ -19,6 +24,14 @@ Once selected the extension will automatically download them.
 * The civicrm/l10n directory must be writable by the web server,
   as well as the l10n directory of each extension installed.
 These requirements are normally fulfilled in a standard CiviCRM installation.
+
+## Installation
+
+This extension cannot be installed using the CiviCRM extension manager. The instructions [here](https://docs.civicrm.org/sysadmin/en/latest/customize/extensions/#installing-a-new-extension) gives the general instructions, but since this repo has no released package, so you should
+
+- Download the complete repo as a zip
+- Unzip that into the extension directory, by default called `ext` in the media directory or similar, but check Administer->System Settings->Directories
+- Re-load the Manage Extension page to see the package as an installable option
 
 ## Usage
 
