@@ -20,7 +20,7 @@ function _civicrm_api3_l10nupdate_fetch_spec(&$params) {
  * @return array API result descriptor
  * @see civicrm_api3_create_success
  * @see civicrm_api3_create_error
- * @throws \CiviCRM_API3_Exception
+ * @throws \CRM_Core_Exception
  */
 function civicrm_api3_l10nupdate_fetch($params) {
   $downloaded = l10nupdate_fetch($params['locales'], $params['forceDownload']);
