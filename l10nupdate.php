@@ -137,14 +137,9 @@ function l10nupdate_fetch($locales = '', $forceDownload = FALSE) {
     if ((strlen($locale) != 5) || (substr($locale, 2,1) != '_')) continue;
 
     // Download core translation files
-    $subdir = '/LC_MESSAGES';
-    if (!is_dir($l10n . $locale . $subdir)) {
-      $subdir = '';
-    }
-
     try {
       $remoteURL = "https://download.civicrm.org/civicrm-l10n-core/mo/$locale/civicrm.mo";
-      $localFile = $l10n . $locale . $subdir . '/civicrm.mo';
+      $localFile = $l10n . $locale . '/LC_MESSAGES/civicrm.mo';
       if (_l10nupdate_download($remoteURL, $localFile, $forceDownload)) {
         $downloaded['core']++;
       }
