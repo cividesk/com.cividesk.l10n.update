@@ -48,7 +48,7 @@ function l10nupdate_civicrm_buildForm($formName, &$form) {
       $domain = new CRM_Core_DAO_Domain();
       $domain->find(TRUE);
       // Populate default language drop-down with available languages
-      $lcMessages = array();
+      $lcMessages = [];
       foreach ($locales as $loc => $lang) {
         if (substr_count($domain->locales, $loc)) {
           $lcMessages[$loc] = $lang;
@@ -118,7 +118,7 @@ function l10nupdate_fetch($locales = '', $forceDownload = FALSE) {
 
   // Get the list of locales we need to download
   // start from the input parameter
-  $locales = ($locales ? explode(',', $locales) : array());
+  $locales = ($locales ? explode(',', $locales) : []);
   $domain = new CRM_Core_DAO_Domain;
   $domain->find(TRUE);
   if ($domain->locales) {
@@ -126,11 +126,11 @@ function l10nupdate_fetch($locales = '', $forceDownload = FALSE) {
     $locales = array_merge($locales, explode(CRM_Core_DAO::VALUE_SEPARATOR, $domain->locales));
   } else {
     // in singlelingual mode, add enabled locales
-    $locales = array_merge(CRM_Core_I18n::uiLanguages(TRUE), array($config->lcMessages));
+    $locales = array_merge(CRM_Core_I18n::uiLanguages(TRUE), [$config->lcMessages]);
   }
 
   // Now download the l10n files from civicrm.org
-  $downloaded = array();
+  $downloaded = [];
   foreach ($locales as $locale) {
     if ($locale == 'en_US') continue;
     // sanity tests - does the locale look legit?
